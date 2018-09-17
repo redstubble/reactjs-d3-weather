@@ -98,7 +98,7 @@ class App extends Component {
       })
       .entries(this.state.weatherData.apiResults.results);
     return {
-      ...this.state.canvas,
+      ...canvas,
       ...{
         x,
         y,
@@ -225,7 +225,7 @@ class App extends Component {
           return multiFormat(d);
         }),
       );
-
+    debugger;
     this.state.canvas.node
       .append('g')
       .attr('class', 'axis y-axis')
@@ -262,9 +262,6 @@ class App extends Component {
   };
 
   render() {
-    if (this.state.canvas) {
-      debugger;
-    }
     //   $.getScript('scripts/tempApiData.js', function () {
     //     this.state.weatherData.apiResults.results = apiData;
     //     this.state.canvas.scaffoldCanvas();
