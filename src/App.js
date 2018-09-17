@@ -10,7 +10,8 @@ import * as d3Scale from 'd3-scale';
 import * as d3ScaleChromatic from 'd3-scale-chromatic';
 import * as d3Shape from 'd3-shape';
 import * as d3Axis from 'd3-axis';
-
+import testData from './test/testData';
+import { canvas } from './d3-helpers';
 import logo from './logo.svg';
 import './App.css';
 
@@ -18,36 +19,74 @@ class App extends Component {
   state = {
     weatherData: null,
   };
-  getWeather = async () => {
-    const weatherData = await weatherFetch();
+
+  populateWeather = async () => {
     this.setState({
-      weatherData: weatherData,
+      weatherData: await this.getWeatherData(),
+      canvas: {
+        y: null,
+        x: null,
+        dataset: null,
+      },
     });
   };
 
-  scaffold = (results) => () => {
-    const graphDiv = 'graph-canvas';
-    var containerDiv = document.getElementById('graph-canvas-weather');
-    canvas.x =
-      containerDiv.clientWidth - (canvas.margin.left + canvas.margin.right);
-    console.log(canvas.x);
-    canvas.y =
-      containerDiv.clientHeight - (canvas.margin.top + canvas.margin.bottom);
-    console.log(canvas.y);
+  getWeatherData = async () => {
+    if (process.env.NODE_ENV === 'development') {
+      return testData;
+    } else {
+      const weatherData = await weatherFetch();
+      const weatherResults = await Promise.all(weatherData.apiResults.results);
+      var _extends =
+        Object.assign ||
+        function(target) {
+          for (var i = 1; i < arguments.length; i++) {
+            var source = arguments[i];
+            for (var key in source) {
+              if (Object.prototype.hasOwnProperty.call(source, key)) {
+                target[key] = source[key];
+              }
+            }
+          }
+          return target;
+        };
 
+      return _extends({}, weatherData, {
+        apiResults: _extends({}, weatherData.apiResults, {
+          results: weatherResults,
+        }),
+      });
+
+      // const result = {
+      //   ...weatherData,
+      //   apiResults: {
+      //     ...weatherData.apiResults,
+      //     results: weatherResults,
+      //   },
+      // };
+    }
+  };
+
+  scaffold = () => {
+    const graphDiv = '.graph-canvas';
+    var containerDiv = document.getElementById('graph-canvas-weather');
     var svg = d3Selection
       .select(graphDiv)
       .append('svg')
       .attr('height', containerDiv.clientHeight)
       .attr('width', containerDiv.clientWidth);
-    canvas.node = svg
+
+    const x =
+      containerDiv.clientWidth - (canvas.margin.left + canvas.margin.right);
+    const y =
+      containerDiv.clientHeight - (canvas.margin.top + canvas.margin.bottom);
+    const node = svg
       .append('g')
       .attr(
         'transform',
         'translate(' + canvas.margin.left + ',' + canvas.margin.top + ')',
       );
-
-    canvas.dataset = d3Collection
+    const dataset = d3Collection
       .nest()
       .key(function(d) {
         return d.name;
@@ -55,22 +94,40 @@ class App extends Component {
       .rollup(function(d) {
         return d[0];
       })
-      .entries(results);
+      .entries(this.state.weatherData.apiResults.results);
+
+    this.setState({
+      canvas: {
+        ...canvas,
+        x: {
+          x,
+        },
+        y: {
+          y,
+        },
+        node: {
+          node,
+        },
+        dataset: {
+          dataset,
+        },
+      },
+    });
   };
 
   populateGraph = () => {
     var timeParse = d3TimeFormat.timeParse('%Y-%m-%dT%H:%M');
     var formatTime = d3TimeFormat.timeFormat('%Y-%m-%dT%H:%M');
-    var arr = canvas.dataset[0].value.forecast;
+    var arr = this.state.canvas.dataset[0].value.forecast;
     var range = [
-      d3Array.extent(canvas.dataset[0].value.forecast, function(d) {
+      d3Array.extent(this.state.canvas.dataset[0].value.forecast, function(d) {
         return new Date(d.dateTime * 1000);
       }),
     ];
 
     var x = d3Scale
       .scaleTime()
-      .range([0, canvas.x])
+      .range([0, this.state.canvas.x])
       .domain(range[0]);
 
     var tempVariance = d3Collection
@@ -80,7 +137,7 @@ class App extends Component {
           return d.temp;
         });
       })
-      .map(canvas.dataset)
+      .map(this.state.canvas.dataset)
       .keys();
 
     var highestTemp = d3Array.max(tempVariance);
@@ -88,7 +145,7 @@ class App extends Component {
 
     var y = d3Scale
       .scaleLinear()
-      .range([canvas.y, 0])
+      .range([this.state.canvas.y, 0])
       .domain([lowestTemp - 50, highestTemp]);
 
     var z = d3Scale.scaleOrdinal(d3ScaleChromatic.schemeCategory10).domain(
@@ -115,14 +172,14 @@ class App extends Component {
       .x(function(d) {
         return x(new Date(d.dateTime * 1000));
       })
-      .y0(canvas.x)
+      .y0(this.state.canvas.x)
       .y1(function(d) {
         return y(d.temp);
       });
 
-    var lineGraph = canvas.node.append('g');
+    var lineGraph = this.state.canvas.node.append('g');
 
-    var location = canvas.node
+    var location = this.state.canvas.node
       .append('g')
       .selectAll('.location')
       .data(this.state.weatherData.apiResults.results)
@@ -141,10 +198,10 @@ class App extends Component {
       })
       .attr('fill', 'none');
 
-    canvas.node
+    this.state.canvas.node
       .append('g')
       .attr('class', 'axis axis--x')
-      .attr('transform', 'translate(0,' + canvas.y + ')')
+      .attr('transform', 'translate(0,' + this.state.canvas.y + ')')
       .call(
         d3Axis.axisBottom(x).tickFormat(function(d) {
           var formatMillisecond = d3TimeFormat.timeFormat('.%L'),
@@ -176,14 +233,17 @@ class App extends Component {
         }),
       );
 
-    canvas.node
+    this.state.canvas.node
       .append('g')
       .attr('class', 'axis y-axis')
       .call(
         d3Axis
           .axisLeft(y)
           .ticks(
-            Math.min(Math.round(Math.floor(canvas.y / 35) + 1), highestTemp),
+            Math.min(
+              Math.round(Math.floor(this.state.canvas.y / 35) + 1),
+              highestTemp,
+            ),
             '.0f',
           ),
       )
@@ -191,9 +251,9 @@ class App extends Component {
       .attr(
         'transform',
         'rotate(-90) translate(' +
-          -(canvas.y / 2) +
+          -(this.state.canvas.y / 2) +
           ', ' +
-          -canvas.margin.left * 0.8 +
+          -this.state.canvas.margin.left * 0.8 +
           ')',
       )
       .attr('class', 'label')
@@ -204,21 +264,22 @@ class App extends Component {
       .attr('dy', '.35em')
       .attr('fill', '#666')
       .text('Temp');
-    canvas.node.selectAll('.y-axis g text').attr('fill', '#666');
-    canvas.node.selectAll('.y-axis g line').attr('stroke', '#666');
+    this.state.canvas.node.selectAll('.y-axis g text').attr('fill', '#666');
+    this.state.canvas.node.selectAll('.y-axis g line').attr('stroke', '#666');
   };
 
   render() {
     if (
       this.state.weatherData &&
       this.state.weatherData.apiResults.results.length > 0
-    )
-      var t = this.scaffold(this.state.weatherData);
-    //   canvas.populateGraph();
+    ) {
+      this.scaffold();
+      // this.populateGraph();
+    }
 
     //   $.getScript('scripts/tempApiData.js', function () {
     //     this.state.weatherData.apiResults.results = apiData;
-    //     canvas.scaffold();
+    //     this.state.canvas.scaffold();
     //     canvas.populateGraph();
     //   });
     return (
@@ -230,19 +291,28 @@ class App extends Component {
         <p className="App-intro">
           <Button
             onClick={() => {
-              const weatherData = this.getWeather();
+              const weatherData = this.populateWeather();
             }}
           >
             Press For Weather
           </Button>
           To get started, edit <code>src/App.js</code> and save to reload.
         </p>
-        <div class="header">
-          <h3 class="text-muted">D3 Implementations</h3>
+        <div className="header">
+          <h3 className="text-muted">D3 Implementations</h3>
         </div>
 
-        <div class="jumbotron graph-canvas" id="graph-canvas-weather" />
-        <div class="bs-callout bs-callout-danger">
+        <div
+          style={{
+            textAlign: 'center',
+            borderBottom: '1px solid #e5e5e5',
+            padding: '0',
+            minHeight: '300px',
+          }}
+          className="jumbotron graph-canvas"
+          id="graph-canvas-weather"
+        />
+        <div className="bs-callout bs-callout-danger">
           <h4>Line Graph of Temperature Forecasts</h4>
           <p>To add labeling, area fill and hover</p>
         </div>
@@ -252,40 +322,6 @@ class App extends Component {
 }
 
 export default App;
-
-var canvas = {
-  dataset: [
-    5,
-    10,
-    13,
-    19,
-    21,
-    25,
-    22,
-    18,
-    15,
-    13,
-    11,
-    12,
-    15,
-    20,
-    18,
-    17,
-    16,
-    18,
-    23,
-    25,
-  ],
-  node: null,
-  x: null,
-  y: null,
-  margin: {
-    top: 25,
-    right: 10,
-    bottom: 25,
-    left: 50,
-  },
-};
 
 // $(function () {
 //   if (typeof d3 !== 'undefined') init();
