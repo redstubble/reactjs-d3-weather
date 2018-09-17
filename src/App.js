@@ -18,17 +18,20 @@ import './App.css';
 class App extends Component {
   state = {
     weatherData: null,
+    canvas: null,
   };
 
   populateWeather = async () => {
-    this.setState({
-      weatherData: await this.getWeatherData(),
-      canvas: {
-        y: null,
-        x: null,
-        dataset: null,
-      },
-    });
+    const w = await this.getWeatherData();
+    if (w && w.apiResults.results.length > 0) {
+      this.setState({
+        weatherData: await this.getWeatherData(),
+      });
+      this.setState({
+        canvas: this.scaffoldCanvas(),
+      });
+      this.populateGraph();
+    }
   };
 
   getWeatherData = async () => {
@@ -67,7 +70,7 @@ class App extends Component {
     }
   };
 
-  scaffold = () => {
+  scaffoldCanvas = () => {
     const graphDiv = '.graph-canvas';
     var containerDiv = document.getElementById('graph-canvas-weather');
     var svg = d3Selection
@@ -75,7 +78,6 @@ class App extends Component {
       .append('svg')
       .attr('height', containerDiv.clientHeight)
       .attr('width', containerDiv.clientWidth);
-
     const x =
       containerDiv.clientWidth - (canvas.margin.left + canvas.margin.right);
     const y =
@@ -95,24 +97,15 @@ class App extends Component {
         return d[0];
       })
       .entries(this.state.weatherData.apiResults.results);
-
-    this.setState({
-      canvas: {
-        ...canvas,
-        x: {
-          x,
-        },
-        y: {
-          y,
-        },
-        node: {
-          node,
-        },
-        dataset: {
-          dataset,
-        },
+    return {
+      ...this.state.canvas,
+      ...{
+        x,
+        y,
+        node,
+        dataset,
       },
-    });
+    };
   };
 
   populateGraph = () => {
@@ -269,17 +262,12 @@ class App extends Component {
   };
 
   render() {
-    if (
-      this.state.weatherData &&
-      this.state.weatherData.apiResults.results.length > 0
-    ) {
-      this.scaffold();
-      // this.populateGraph();
+    if (this.state.canvas) {
+      debugger;
     }
-
     //   $.getScript('scripts/tempApiData.js', function () {
     //     this.state.weatherData.apiResults.results = apiData;
-    //     this.state.canvas.scaffold();
+    //     this.state.canvas.scaffoldCanvas();
     //     canvas.populateGraph();
     //   });
     return (
@@ -289,11 +277,7 @@ class App extends Component {
           <h1 className="App-title">Welcome to React</h1>
         </header>
         <p className="App-intro">
-          <Button
-            onClick={() => {
-              const weatherData = this.populateWeather();
-            }}
-          >
+          <Button onClick={() => this.populateWeather()}>
             Press For Weather
           </Button>
           To get started, edit <code>src/App.js</code> and save to reload.
