@@ -37,37 +37,36 @@ class App extends Component {
   getWeatherData = async () => {
     if (process.env.NODE_ENV === 'development') {
       return testData;
-    } else {
-      const weatherData = await weatherFetch();
-      const weatherResults = await Promise.all(weatherData.apiResults.results);
-      var _extends =
-        Object.assign ||
-        function(target) {
-          for (var i = 1; i < arguments.length; i++) {
-            var source = arguments[i];
-            for (var key in source) {
-              if (Object.prototype.hasOwnProperty.call(source, key)) {
-                target[key] = source[key];
-              }
+    }
+    const weatherData = await weatherFetch();
+    const weatherResults = await Promise.all(weatherData.apiResults.results);
+    var _extends =
+      Object.assign ||
+      function(target) {
+        for (var i = 1; i < arguments.length; i++) {
+          var source = arguments[i];
+          for (var key in source) {
+            if (Object.prototype.hasOwnProperty.call(source, key)) {
+              target[key] = source[key];
             }
           }
-          return target;
-        };
+        }
+        return target;
+      };
 
-      return _extends({}, weatherData, {
-        apiResults: _extends({}, weatherData.apiResults, {
-          results: weatherResults,
-        }),
-      });
+    return _extends({}, weatherData, {
+      apiResults: _extends({}, weatherData.apiResults, {
+        results: weatherResults,
+      }),
+    });
 
-      // const result = {
-      //   ...weatherData,
-      //   apiResults: {
-      //     ...weatherData.apiResults,
-      //     results: weatherResults,
-      //   },
-      // };
-    }
+    // const result = {
+    //   ...weatherData,
+    //   apiResults: {
+    //     ...weatherData.apiResults,
+    //     results: weatherResults,
+    //   },
+    // };
   };
 
   scaffoldCanvas = () => {
@@ -190,7 +189,6 @@ class App extends Component {
         return z(d.name);
       })
       .attr('fill', 'none');
-
     this.state.canvas.node
       .append('g')
       .attr('class', 'axis axis--x')
@@ -225,7 +223,7 @@ class App extends Component {
           return multiFormat(d);
         }),
       );
-    debugger;
+
     this.state.canvas.node
       .append('g')
       .attr('class', 'axis y-axis')
@@ -256,17 +254,12 @@ class App extends Component {
       .attr('y', 6)
       .attr('dy', '.35em')
       .attr('fill', '#666')
-      .text('Temp');
+      .text('Temp °C');
     this.state.canvas.node.selectAll('.y-axis g text').attr('fill', '#666');
     this.state.canvas.node.selectAll('.y-axis g line').attr('stroke', '#666');
   };
 
   render() {
-    //   $.getScript('scripts/tempApiData.js', function () {
-    //     this.state.weatherData.apiResults.results = apiData;
-    //     this.state.canvas.scaffoldCanvas();
-    //     canvas.populateGraph();
-    //   });
     return (
       <div className="App">
         <header className="App-header">
@@ -303,12 +296,3 @@ class App extends Component {
 }
 
 export default App;
-
-// $(function () {
-//   if (typeof d3 !== 'undefined') init();
-//   else {
-//     setTimeout(function () {
-//       self.defer()
-//     }, 50);
-//   }
-// });

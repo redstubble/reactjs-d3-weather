@@ -1,6 +1,9 @@
 {
-  "name": "d3-app",
+  "name": "d3-example-weather-graph",
   "version": "0.1.0",
+  "publishConfig": {
+    "access": "restricted"
+  },
   "private": true,
   "dependencies": {
     "d3-array": "^1.2.4",

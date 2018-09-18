@@ -5,7 +5,7 @@ export default async () => {
     const response = await fetch(
       `http://api.openweathermap.org/data/2.5/forecast?id=${
         loc._id
-      }&APPID=${key}`,
+      }&units=metric&APPID=${key}`,
     );
     const data = await response.json();
     return data;
@@ -15,7 +15,7 @@ export default async () => {
     const location = item.city.name + ', ' + item.city.country;
     const forecast = item.list.map((ts) => {
       return {
-        dateTime: new Date(ts.dt),
+        dateTime: ts.dt,
         temp: ts.main.temp,
         humidity: ts.main.humidity,
       };
