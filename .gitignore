@@ -4,4 +4,4 @@ examples
 .gitignore
 webpack.config.js
 node_modules
-dist
+distyarn-error.log
