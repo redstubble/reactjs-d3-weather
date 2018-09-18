@@ -1,10 +1,52 @@
 {
-  "name": "d3-example-weather-graph",
-  "version": "0.1.0",
-  "publishConfig": {
-    "access": "restricted"
-  },
+  "name": "react-d3-weather-graph",
+  "version": "1.0.0",
+  "description": "Displays weather forecast using D3",
+  "main": "dist/index.js",
+  "repository": "https://github.com/redstubble/reactjs-d3-weather",
+  "author": "John Williams",
+  "license": "MIT",
   "private": true,
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "webpack-dev-server --mode development",
+    "transpile": "babel src -d dist --copy-files",
+    "prepublishOnly": "npm run transpile",
+    "build": "webpack --mode production",
+    "deploy": "gh-pages -d examples/dist",
+    "publish-demo": "npm run build && npm run deploy"
+  },
+  "peerDependencies": {
+    "react": "^16.5.1",
+    "react-dom": "^16.5.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.1.0",
+    "@babel/plugin-proposal-class-properties": "^7.1.0",
+    "@babel/plugin-transform-runtime": "^7.1.0",
+    "@babel/preset-env": "^7.1.0",
+    "@babel/preset-react": "^7.0.0",
+    "babel-cli": "^6.26.0",
+    "babel-core": "^6.26.3",
+    "babel-eslint": "^9.0.0",
+    "babel-loader": "^8.0.0-beta.6",
+    "babel-preset-env": "^1.7.0",
+    "babel-preset-react": "^6.24.1",
+    "babel-preset-react-native": "^4.0.1",
+    "css-loader": "^1.0.0",
+    "eslint": "^5.6.0",
+    "eslint-config-airbnb": "^17.1.0",
+    "eslint-plugin-import": "^2.14.0",
+    "eslint-plugin-jsx-a11y": "^6.1.1",
+    "eslint-plugin-react": "^7.11.1",
+    "html-webpack-plugin": "^3.2.0",
+    "react": "^16.5.0",
+    "react-dom": "^16.5.0",
+    "style-loader": "^0.23.0",
+    "webpack": "^4.19.0",
+    "webpack-cli": "^3.1.0",
+    "webpack-dev-server": "^3.1.8"
+  },
   "dependencies": {
     "d3-array": "^1.2.4",
     "d3-axis": "^1.0.12",
@@ -15,17 +57,6 @@
     "d3-shape": "^1.2.2",
     "d3-time": "^1.0.10",
     "d3-time-format": "^2.1.3",
-    "ramda": "^0.25.0",
-    "react": "^16.5.0",
-    "react-dom": "^16.5.0",
-    "react-scripts": "1.1.5",
     "semantic-ui-react": "^0.82.5"
-  },
-  "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test --env=jsdom",
-    "eject": "react-scripts eject"
-  },
-  "devDependencies": {}
+  }
 }
