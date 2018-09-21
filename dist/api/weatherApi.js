@@ -35,7 +35,7 @@ _regenerator.default.mark(function _callee3() {
                   switch (_context.prev = _context.next) {
                     case 0:
                       _context.next = 2;
-                      return fetch("http://api.openweathermap.org/data/2.5/forecast?id=".concat(loc._id, "&units=metric&APPID=").concat(_locations.key));
+                      return fetch("https://api.openweathermap.org/data/2.5/forecast?id=".concat(loc._id, "&units=metric&APPID=").concat(_locations.key));
 
                     case 2:
                       response = _context.sent;
