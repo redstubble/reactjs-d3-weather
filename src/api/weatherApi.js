@@ -3,7 +3,7 @@ import { locations, key } from './locations';
 export default async () => {
   const dataArray = locations.map(async (loc) => {
     const response = await fetch(
-      `http://api.openweathermap.org/data/2.5/forecast?id=${
+      `https://api.openweathermap.org/data/2.5/forecast?id=${
         loc._id
       }&units=metric&APPID=${key}`,
     );
