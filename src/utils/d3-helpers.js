@@ -21,13 +21,4 @@ export var canvas = {
     23,
     25,
   ],
-  node: null,
-  x: null,
-  y: null,
-  margin: {
-    top: 25,
-    right: 10,
-    bottom: 25,
-    left: 50,
-  },
 };

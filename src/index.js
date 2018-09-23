@@ -1,6 +1,7 @@
 // https://medium.com/dailyjs/building-a-react-component-with-webpack-publish-to-npm-deploy-to-github-guide-6927f60b3220
 
 import React, { Component } from 'react';
+import ReactDOM from 'react-dom';
 import { Container } from 'semantic-ui-react';
 import * as d3Selection from 'd3-selection';
 import * as d3Collection from 'd3-collection';
@@ -11,8 +12,8 @@ import * as d3Scale from 'd3-scale';
 import * as d3ScaleChromatic from 'd3-scale-chromatic';
 import * as d3Shape from 'd3-shape';
 import * as d3Axis from 'd3-axis';
-import weatherFetch from './api/weatherApi';
-import testData from './test/testData';
+import * as d3Voronoi from 'd3-voronoi';
+import { getWeatherData } from './api/weatherApi';
 import { canvas as canvasProps } from './utils/d3-helpers';
 import RadioButtons from './utils/radio-buttons';
 
@@ -21,7 +22,23 @@ const graphDiv = '.graph-canvas';
 class D3Weather extends Component {
   state = {
     weatherData: null,
-    canvas: null,
+    canvas: {
+      width: null,
+      height: null,
+      node: null,
+      margin: {
+        top: 25,
+        right: 10,
+        bottom: 25,
+        left: 50,
+      },
+    },
+    scales: {
+      x: null,
+      y: null,
+      z: null,
+    },
+    svgElements: {},
     select: 'clear',
     d3populated: false,
   };
@@ -30,26 +47,6 @@ class D3Weather extends Component {
     this.setState({
       select: value,
     });
-  };
-
-  clearGraph = () => {
-    d3Selection
-      .select(graphDiv)
-      .selectAll('*')
-      .remove();
-  };
-
-  populateWeather = async () => {
-    const w = await this.getWeatherData();
-    if (w && w.apiResults.results.length > 0) {
-      this.setState({
-        weatherData: await this.getWeatherData(),
-      });
-      this.setState({
-        canvas: this.scaffoldCanvas(),
-      });
-      this.populateGraph();
-    }
   };
 
   componentDidUpdate = () => {
@@ -71,78 +68,81 @@ class D3Weather extends Component {
     }
   };
 
-  getWeatherData = async () => {
-    if (process.env.NODE_ENV === 'development') {
-      return testData;
-    }
-    const weatherData = await weatherFetch();
-    const weatherResults = await Promise.all(weatherData.apiResults.results);
-    return {
-      ...weatherData,
-      apiResults: {
-        ...weatherData.apiResults,
-        results: weatherResults,
-      },
-    };
+  clearGraph = () => {
+    d3Selection
+      .select(graphDiv)
+      .selectAll('*')
+      .remove();
   };
 
-  scaffoldCanvas = () => {
-    const containerDiv = document.getElementById('graph-canvas-weather');
-    const { weatherData } = this.state;
+  populateWeather = async () => {
+    const w = await getWeatherData();
+    if (w && w.apiResults.results.length > 0) {
+      this.setState((prevState) => ({
+        canvas: {
+          ...prevState.canvas,
+          ...this.setCanvasDataState(),
+        },
+        weatherData: w,
+      }));
+      this.setState({
+        scales: this.setD3Scales(),
+      });
+
+      this.setAxis();
+      this.plotLineGraph();
+      this.plotVoronoi();
+      this.plotArea();
+    }
+  };
+
+  setCanvasDataState = () => {
+    const { top, right, bottom, left } = this.state.canvas.margin;
+    const canvasContainer = document.getElementById('graph-canvas-weather');
+    const width = canvasContainer.clientWidth - (left + right);
+    const height = canvasContainer.clientHeight - (top + bottom);
     const svg = d3Selection
       .select(graphDiv)
       .append('svg')
-      .attr('height', containerDiv.clientHeight)
-      .attr('width', containerDiv.clientWidth);
-    const x =
-      containerDiv.clientWidth -
-      (canvasProps.margin.left + canvasProps.margin.right);
-    const y =
-      containerDiv.clientHeight -
-      (canvasProps.margin.top + canvasProps.margin.bottom);
+      .attr('height', canvasContainer.clientHeight)
+      .attr('width', canvasContainer.clientWidth);
     const node = svg
       .append('g')
-      .attr(
-        'transform',
-        `translate(${canvasProps.margin.left},${canvasProps.margin.top})`,
-      );
+      .attr('class', 'canvas-node')
+      .attr('transform', `translate(${left},${top})`);
+    return {
+      width,
+      height,
+      node,
+    };
+  };
+
+  setD3Scales = () => {
+    const { canvas, weatherData } = this.state;
+    const reactScope = this;
+
     const dataset = d3Collection
       .nest()
       .key((d) => d.name)
       .rollup((d) => d[0])
       .entries(weatherData.apiResults.results);
-    return {
-      ...canvasProps,
-      ...{
-        x,
-        y,
-        node,
-        dataset,
-      },
-    };
-  };
 
-  populateGraph = () => {
-    const { canvas, weatherData } = this.state;
-    // const timeParse = d3TimeFormat.timeParse('%Y-%m-%dT%H:%M');
-    // const formatTime = d3TimeFormat.timeFormat('%Y-%m-%dT%H:%M');
-    // const arr = this.state.canvas.dataset[0].value.forecast;
     const range = [
       d3Array.extent(
-        canvas.dataset[0].value.forecast,
+        dataset[0].value.forecast,
         (d) => new Date(d.dateTime * 1000),
       ),
     ];
 
     const x = d3Scale
       .scaleTime()
-      .range([0, canvas.x])
+      .range([0, canvas.width])
       .domain(range[0]);
 
     const tempVariance = d3Collection
       .nest()
       .key((d) => d3Array.max(d.value.forecast, (e) => e.temp))
-      .map(canvas.dataset)
+      .map(dataset)
       .keys();
 
     const highestTemp = d3Array.max(tempVariance);
@@ -150,52 +150,30 @@ class D3Weather extends Component {
 
     const y = d3Scale
       .scaleLinear()
-      .range([canvas.y, 0])
-      .domain([lowestTemp - 50, highestTemp]);
+      .range([canvas.height, 0])
+      .domain([lowestTemp - 15, highestTemp]);
 
     const z = d3Scale
       .scaleOrdinal(d3ScaleChromatic.schemeCategory10)
       .domain(weatherData.apiResults.results.map((d) => d.name));
 
-    const line = d3Shape
-      .line()
-      // .interpolate('basis')
-      .curve(d3Shape.curveNatural)
-      //   .curve(d3.curveStepAfter)
-      .x((d) => x(new Date(d.dateTime * 1000)))
-      .y((d) => y(d.temp));
+    return {
+      x,
+      y,
+      z,
+      highestTemp,
+    };
+  };
 
-    // const area = d3Shape
-    //   .area()
-    //   .curve(d3Shape.curveStepAfter)
-    //   .x(function(d) {
-    //     return x(new Date(d.dateTime * 1000));
-    //   })
-    //   .y0(canvas.x)
-    //   .y1(function(d) {
-    //     return y(d.temp);
-    //   });
-
-    // const lineGraph = canvas.node.append('g');
-
-    const location = canvas.node
-      .append('g')
-      .selectAll('.location')
-      .data(weatherData.apiResults.results)
-      .enter()
-      .append('g')
-      .attr('class', 'location');
-
-    location
-      .append('path')
-      .attr('class', 'line')
-      .attr('d', (d) => line(d.forecast))
-      .style('stroke', (d) => z(d.name))
-      .attr('fill', 'none');
+  setAxis = () => {
+    const {
+      scales: { x, y, highestTemp },
+      canvas,
+    } = this.state;
     canvas.node
       .append('g')
       .attr('class', 'axis axis--x')
-      .attr('transform', `translate(0, ${canvas.y})`)
+      .attr('transform', `translate(0, ${canvas.height})`)
       .call(
         d3Axis.axisBottom(x).tickFormat((d) => {
           const formatMillisecond = d3TimeFormat.timeFormat('.%L');
@@ -206,22 +184,27 @@ class D3Weather extends Component {
           const formatWeek = d3TimeFormat.timeFormat('%b %d');
           const formatMonth = d3TimeFormat.timeFormat('%B');
           const formatYear = d3TimeFormat.timeFormat('%Y');
+
           const multiFormat = (date) => {
-            return (d3Time.timeSecond(date) < date
-              ? formatMillisecond
-              : d3Time.timeMinute(date) < date
-                ? formatSecond
-                : d3Time.timeHour(date) < date
-                  ? formatMinute
-                  : d3Time.timeDay(date) < date
-                    ? formatHour
-                    : d3Time.timeMonth(date) < date
-                      ? d3Time.timeWeek(date) < date
-                        ? formatDay
-                        : formatWeek
-                      : d3Time.timeYear(date) < date
-                        ? formatMonth
-                        : formatYear)(date);
+            let formatTime = formatYear;
+            if (d3Time.timeSecond(date) < date) {
+              formatTime = formatMillisecond;
+            } else if (d3Time.timeMinute(date) < date) {
+              formatTime = formatSecond;
+            } else if (d3Time.timeHour(date) < date) {
+              formatTime = formatMinute;
+            } else if (d3Time.timeDay(date) < date) {
+              formatTime = formatHour;
+            } else if (d3Time.timeMonth(date) < date) {
+              if (d3Time.timeWeek(date) < date) {
+                formatTime = formatDay;
+              } else {
+                formatTime = formatWeek;
+              }
+            } else if (d3Time.timeYear(date) < date) {
+              formatTime = formatMonth;
+            }
+            return formatTime(date);
           };
           return multiFormat(d);
         }),
@@ -234,14 +217,17 @@ class D3Weather extends Component {
         d3Axis
           .axisLeft(y)
           .ticks(
-            Math.min(Math.round(Math.floor(canvas.y / 35) + 1), highestTemp),
+            Math.min(
+              Math.round(Math.floor(canvas.height / 35) + 1),
+              highestTemp,
+            ),
             '.0f',
           ),
       )
       .append('text')
       .attr(
         'transform',
-        `rotate(-90) translate(${-(canvas.y / 2)}, ${-canvas.margin.left *
+        `rotate(-90) translate(${-(canvas.height / 2)}, ${-canvas.margin.left *
           0.8})`,
       )
       .attr('class', 'label')
@@ -254,6 +240,191 @@ class D3Weather extends Component {
       .text('Temp °C');
     canvas.node.selectAll('.y-axis g text').attr('fill', '#666');
     canvas.node.selectAll('.y-axis g line').attr('stroke', '#666');
+  };
+
+  plotLineGraph = () => {
+    const {
+      scales: { x, y, z },
+      canvas,
+      weatherData,
+      svgElements,
+    } = this.state;
+    const reactScope = this;
+
+    const line = d3Shape
+      .line()
+      // .interpolate('basis')
+      .curve(d3Shape.curveNatural)
+      //   .curve(d3.curveStepAfter)
+      .x((d) => x(new Date(d.dateTime * 1000)))
+      .y((d) => y(d.temp));
+
+    const location = canvas.node
+      .append('g')
+      .selectAll('.location')
+      .data(weatherData.apiResults.results)
+      .enter()
+      .append('g')
+      .attr('class', 'location');
+
+    location
+      .append('path')
+      .attr('class', 'line')
+      .attr('d', function fn(d) {
+        svgElements[d.name] = {
+          line: this,
+          color: z(d.name),
+        };
+        return line(d.forecast);
+      })
+      .style('stroke', (d) => {
+        return z(d.name);
+      })
+      .attr('fill', 'none');
+    this.setState({ svgElements });
+  };
+
+  plotVoronoi = () => {
+    const {
+      scales: { x, y },
+      canvas,
+      weatherData,
+    } = this.state;
+    const reactScope = this;
+    const voronoi = d3Voronoi
+      .voronoi()
+      .x((d) => x(new Date(d.dateTime * 1000)))
+      .y((d) => y(d.temp))
+      .extent([
+        [-canvas.margin.left, -canvas.margin.top],
+        [
+          canvas.width + canvas.margin.right,
+          canvas.height + canvas.margin.bottom,
+        ],
+      ]);
+
+    function voroniPolygons(data) {
+      return d3Array.merge(
+        data.map((d) => {
+          return d.forecast.map((e) => {
+            return {
+              ...e,
+              name: d.name,
+              line: d.line,
+            };
+          });
+        }),
+      );
+    }
+
+    const voronoiGroup = canvas.node.append('g').attr('class', 'voronoi');
+
+    voronoiGroup
+      .selectAll('path')
+      .data(voronoi.polygons(voroniPolygons(weatherData.apiResults.results)))
+      .enter()
+      .append('path')
+      .attr('d', (d) => (d ? `M${d.join('L')}Z` : null))
+      .attr('pointer-events', 'all')
+      .attr('fill', 'none')
+      .on('mouseover', reactScope.mouseOver)
+      .on('mouseout', reactScope.mouseOut);
+  };
+
+  plotArea = () => {
+    const {
+      scales: { x, y },
+      canvas,
+      svgElements,
+      weatherData,
+    } = this.state;
+    const area = d3Shape
+      .area()
+      .curve(d3Shape.curveNatural)
+      .x((d) => x(new Date(d.dateTime * 1000)))
+      .y0(canvas.height)
+      .y1((d) => y(d.temp));
+
+    const location = canvas.node
+      .append('g')
+      .selectAll('.location')
+      .data(weatherData.apiResults.results)
+      .enter()
+      .append('g')
+      .attr('class', 'location');
+
+    location
+      .append('path')
+      .attr('class', 'area')
+      .attr('d', function(d) {
+        svgElements[d.name] = {
+          ...svgElements[d.name],
+          area: this,
+        };
+        return area(d.forecast);
+      })
+      .attr('fill', 'none');
+  };
+
+  mouseOver = (d) => {
+    const {
+      scales: { x, y },
+      svgElements,
+    } = this.state;
+    const el = svgElements[d.data.name];
+    // debugger;
+    d3Selection
+      .select(el.line)
+      .classed('city--hover', true)
+      .style('stroke-width', 3);
+    d3Selection
+      .select(el.area)
+      .attr('fill', el.color)
+      .attr('opacity', 0.5);
+    // .classed('city--hover', true)
+    // .style('stroke-width', 3);
+    // .style('stroke', d3Color.hsl(z(d.data.name)).brighter(1));
+    // d.data.city.line.parentNode.appendChild(d.data.city.line);
+    this.focus().attr(
+      'transform',
+      `translate(${x(d.data.dateTime)},${y(d.data.temp)})`,
+    );
+    this.focus()
+      .select('text')
+      .text(d.data.name);
+  };
+
+  mouseOut = (d) => {
+    const { svgElements } = this.state;
+    const el = svgElements[d.data.name];
+    d3Selection
+      .select(el.line)
+      .classed('city--hover', true)
+      .style('stroke-width', 1);
+    d3Selection
+      .select(el.area)
+      .attr('fill', 'none')
+      .attr('opacity', 0.5);
+  };
+
+  focus = () => {
+    const { canvas } = this.state;
+    const focus = canvas.node
+      .append('g')
+      .attr('transform', 'translate(-100,-100)')
+      .attr('class', 'focus');
+    focus.append('circle').attr('r', 3.5);
+    focus.append('text').attr('y', -10);
+    return focus;
+  };
+
+  mouseMove = () => {
+    // const { x } = this.state;
+    // console.log(this);
+    console.log(this);
+    const { x } = this.state;
+    console.log(d3Selection.mouse(this)[0]);
+    console.log(x.invert(d3Selection.mouse(this)[0]));
   };
 
   render() {
@@ -278,7 +449,7 @@ class D3Weather extends Component {
             className="jumbotron graph-canvas"
             id="graph-canvas-weather"
           />
-          <div className="bs-callout bs-callout-danger">
+          <div className="bs-call-out bs-call-out-danger">
             <h4>Line Graph of Temperature Forecasts</h4>
             <p>To add labeling, area fill and hover</p>
           </div>
