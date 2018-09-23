@@ -3,17 +3,19 @@
 import React, { Component } from 'react';
 import { Container } from 'semantic-ui-react';
 import * as d3Selection from 'd3-selection';
-import * as d3TimeFormat from 'd3-time-format';
-import * as d3Time from 'd3-time';
+
 import * as d3Array from 'd3-array';
 import * as d3Shape from 'd3-shape';
-import * as d3Axis from 'd3-axis';
 import * as d3Voronoi from 'd3-voronoi';
 import { getWeatherData } from './api/weatherApi';
 import RadioButtons from './utils/radio-buttons';
 import ToolTip from './components/tooltip';
 import { toggleElements, resetElements } from './utils/toggleElements';
-import { setCanvasDataState, setD3Scales } from './utils/canvasScaffold';
+import {
+  setCanvasDataState,
+  setD3Scales,
+  setAxis,
+} from './utils/canvasScaffold';
 
 const graphDiv = '.graph-canvas';
 
@@ -86,89 +88,12 @@ class D3Weather extends Component {
       this.setState((prevState) => ({
         scales: setD3Scales(prevState),
       }));
+      setAxis(this.state);
 
-      this.setAxis();
       this.plotLineGraph();
-      this.plotVoronoi();
       this.plotArea();
+      this.plotVoronoi();
     }
-  };
-
-  setAxis = () => {
-    const {
-      scales: { x, y, highestTemp },
-      canvas,
-    } = this.state;
-    canvas.node
-      .append('g')
-      .attr('class', 'axis axis--x')
-      .attr('transform', `translate(0, ${canvas.height})`)
-      .call(
-        d3Axis.axisBottom(x).tickFormat((d) => {
-          const formatMillisecond = d3TimeFormat.timeFormat('.%L');
-          const formatSecond = d3TimeFormat.timeFormat(':%S');
-          const formatMinute = d3TimeFormat.timeFormat('%H:%M');
-          const formatHour = d3TimeFormat.timeFormat('%H:00');
-          const formatDay = d3TimeFormat.timeFormat('%a %d');
-          const formatWeek = d3TimeFormat.timeFormat('%b %d');
-          const formatMonth = d3TimeFormat.timeFormat('%B');
-          const formatYear = d3TimeFormat.timeFormat('%Y');
-
-          const multiFormat = (date) => {
-            let formatTime = formatYear;
-            if (d3Time.timeSecond(date) < date) {
-              formatTime = formatMillisecond;
-            } else if (d3Time.timeMinute(date) < date) {
-              formatTime = formatSecond;
-            } else if (d3Time.timeHour(date) < date) {
-              formatTime = formatMinute;
-            } else if (d3Time.timeDay(date) < date) {
-              formatTime = formatHour;
-            } else if (d3Time.timeMonth(date) < date) {
-              if (d3Time.timeWeek(date) < date) {
-                formatTime = formatDay;
-              } else {
-                formatTime = formatWeek;
-              }
-            } else if (d3Time.timeYear(date) < date) {
-              formatTime = formatMonth;
-            }
-            return formatTime(date);
-          };
-          return multiFormat(d);
-        }),
-      );
-
-    canvas.node
-      .append('g')
-      .attr('class', 'axis y-axis')
-      .call(
-        d3Axis
-          .axisLeft(y)
-          .ticks(
-            Math.min(
-              Math.round(Math.floor(canvas.height / 35) + 1),
-              highestTemp,
-            ),
-            '.0f',
-          ),
-      )
-      .append('text')
-      .attr(
-        'transform',
-        `rotate(-90) translate(${-(canvas.height / 2)}, ${-canvas.margin.left *
-          0.8})`,
-      )
-      .attr('class', 'label')
-      .attr('text-anchor', 'middle')
-      .style('font-weight', 'normal')
-      .style('font-size', '12px')
-      .attr('y', 6)
-      .attr('dy', '.35em')
-      .attr('fill', '#666')
-      .text('Temp °C');
-    canvas.node.selectAll('.y-axis g text').attr('fill', '#666');
-    canvas.node.selectAll('.y-axis g line').attr('stroke', '#666');
   };
 
   plotLineGraph = () => {
@@ -283,7 +208,7 @@ class D3Weather extends Component {
     location
       .append('path')
       .attr('class', 'area')
-      .attr('d', function(d) {
+      .attr('d', function fn(d) {
         svgElements[d.name] = {
           ...svgElements[d.name],
           area: this,
