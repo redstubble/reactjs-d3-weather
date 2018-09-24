@@ -49,6 +49,8 @@ var _radioButtons = _interopRequireDefault(require("./utils/radio-buttons"));
 
 var _tooltip = _interopRequireDefault(require("./components/tooltip"));
 
+var _headertooltip = _interopRequireDefault(require("./components/headertooltip"));
+
 var _toggleElements = require("./utils/toggleElements");
 
 var _canvasScaffold = require("./utils/canvasScaffold");
@@ -95,7 +97,8 @@ function (_Component) {
       },
       svgElements: {},
       select: 'clear',
-      d3populated: false
+      d3populated: false,
+      live: null
     });
     (0, _defineProperty2.default)((0, _assertThisInitialized2.default)((0, _assertThisInitialized2.default)(_this)), "handleSelectChange", function (e, _ref) {
       var value = _ref.value;
@@ -316,7 +319,16 @@ function (_Component) {
       });
 
       f.attr('transform', "translate(".concat(x(new Date(d.data.dateTime * 1000)), ",").concat(y(d.data.temp), ")"));
-      f.select('text').text("".concat(d.data.name, ":\n ").concat(d.data.temp, "C"));
+      f.select('text').text("".concat(d.data.name)).text("".concat(d.data.temp, "C"));
+
+      _this.setState({
+        live: {
+          name: d.data.name,
+          color: el.color,
+          temp: d.data.temp,
+          time: new Date(d.data.dateTime * 1000).toString()
+        }
+      });
     });
     (0, _defineProperty2.default)((0, _assertThisInitialized2.default)((0, _assertThisInitialized2.default)(_this)), "mouseOut", function (d, f) {
       var svgElements = _this.state.svgElements;
@@ -326,6 +338,10 @@ function (_Component) {
       });
 
       f.attr('transform', 'translate(-100,-100)');
+
+      _this.setState({
+        live: null
+      });
     });
     (0, _defineProperty2.default)((0, _assertThisInitialized2.default)((0, _assertThisInitialized2.default)(_this)), "focus", function () {
       var canvas = _this.state.canvas;
@@ -342,7 +358,8 @@ function (_Component) {
     value: function render() {
       var _this$state7 = this.state,
           select = _this$state7.select,
-          svgElements = _this$state7.svgElements;
+          svgElements = _this$state7.svgElements,
+          d3populated = _this$state7.d3populated;
       return _react.default.createElement(_semanticUiReact.Container, null, _react.default.createElement("div", {
         className: "App"
       }, _react.default.createElement("div", {
@@ -352,6 +369,8 @@ function (_Component) {
       }, "D3 Implementations")), _react.default.createElement(_radioButtons.default, {
         handleChange: this.handleSelectChange,
         parentState: select
+      }), _react.default.createElement(_headertooltip.default, {
+        element: this.state.live
       }), _react.default.createElement("div", {
         style: {
           textAlign: 'center',
@@ -363,7 +382,8 @@ function (_Component) {
         id: "graph-canvas-weather"
       }), _react.default.createElement(_tooltip.default, {
         handleChange: this.handleElementsHideChange,
-        elements: svgElements
+        elements: svgElements,
+        d3populated: d3populated
       })));
     }
   }]);

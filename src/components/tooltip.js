@@ -23,18 +23,26 @@ const ColorContainer = styled.div`
     height: 1em;
     background-color: ${(props) => props.color};
     opacity: ${(props) => props.opacity};
+    border: ${(props) => (props.border ? '3px solid black' : 'none')};
   }
 `;
 
+const TextContainer = styled.span`
+  font-weight: ${(props) => (props.highlight ? 'bold' : 'normal')};
+  opacity: ${(props) => props.highlight}};
+  font-size: 0.8em;
+`;
+
 export const highlight = (bool) => {
-  return bool ? '1' : '0.5';
+  return bool ? '1' : '0.8';
 };
 
 class tooltip extends React.Component {
   state = {};
 
   render() {
-    const { elements, handleChange } = this.props;
+    const { d3populated, elements, handleChange } = this.props;
+    if (!d3populated) return null;
     return (
       <div
         className="d3-weather-tooltip-legend  legend"
@@ -56,12 +64,16 @@ class tooltip extends React.Component {
                     height: '1em',
                   }}
                 >
-                  <span style={{ opacity: { highlighted }, fontSize: '0.8em' }}>
+                  <TextContainer highlight={highlighted}>
                     {el.name}
-                  </span>
+                  </TextContainer>
                 </Grid.Column>
                 <Grid.Column width={1}>
-                  <ColorContainer color={el.color} opacity={highlighted} />
+                  <ColorContainer
+                    color={el.color}
+                    border={el.live}
+                    opacity={highlighted}
+                  />
                 </Grid.Column>
                 <Grid.Column width={1}>
                   <Checkbox

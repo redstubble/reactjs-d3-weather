@@ -31,8 +31,18 @@ var _semanticUiReact = require("semantic-ui-react");
 
 var _styledComponents = _interopRequireDefault(require("styled-components"));
 
+function _templateObject2() {
+  var data = (0, _taggedTemplateLiteral2.default)(["\n  font-weight: ", ";\n  opacity: ", "};\n  font-size: 0.8em;\n"]);
+
+  _templateObject2 = function _templateObject2() {
+    return data;
+  };
+
+  return data;
+}
+
 function _templateObject() {
-  var data = (0, _taggedTemplateLiteral2.default)(["\n  &&& {\n    width: 100%;\n    min-width: 1em;\n    height: 1em;\n    background-color: ", ";\n    opacity: ", ";\n  }\n"]);
+  var data = (0, _taggedTemplateLiteral2.default)(["\n  &&& {\n    width: 100%;\n    min-width: 1em;\n    height: 1em;\n    background-color: ", ";\n    opacity: ", ";\n    border: ", ";\n  }\n"]);
 
   _templateObject = function _templateObject() {
     return data;
@@ -50,10 +60,18 @@ var ColorContainer = _styledComponents.default.div(_templateObject(), function (
   return props.color;
 }, function (props) {
   return props.opacity;
+}, function (props) {
+  return props.border ? '3px solid black' : 'none';
+});
+
+var TextContainer = _styledComponents.default.span(_templateObject2(), function (props) {
+  return props.highlight ? 'bold' : 'normal';
+}, function (props) {
+  return props.highlight;
 });
 
 var highlight = function highlight(bool) {
-  return bool ? '1' : '0.5';
+  return bool ? '1' : '0.8';
 };
 
 exports.highlight = highlight;
@@ -83,8 +101,10 @@ function (_React$Component) {
     key: "render",
     value: function render() {
       var _this$props = this.props,
+          d3populated = _this$props.d3populated,
           elements = _this$props.elements,
           handleChange = _this$props.handleChange;
+      if (!d3populated) return null;
       return _react.default.createElement("div", {
         className: "d3-weather-tooltip-legend  legend",
         style: {
@@ -108,17 +128,13 @@ function (_React$Component) {
             overflow: 'hidden',
             height: '1em'
           }
-        }, _react.default.createElement("span", {
-          style: {
-            opacity: {
-              highlighted: highlighted
-            },
-            fontSize: '0.8em'
-          }
+        }, _react.default.createElement(TextContainer, {
+          highlight: highlighted
         }, el.name)), _react.default.createElement(_semanticUiReact.Grid.Column, {
           width: 1
         }, _react.default.createElement(ColorContainer, {
           color: el.color,
+          border: el.live,
           opacity: highlighted
         })), _react.default.createElement(_semanticUiReact.Grid.Column, {
           width: 1

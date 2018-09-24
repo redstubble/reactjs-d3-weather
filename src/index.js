@@ -9,6 +9,7 @@ import * as d3Shape from 'd3-shape';
 import { getWeatherData } from './api/weatherApi';
 import RadioButtons from './utils/radio-buttons';
 import ToolTip from './components/tooltip';
+import HeaderToolTip from './components/headertooltip';
 import { toggleElements, resetElements } from './utils/toggleElements';
 import {
   setCanvasDataState,
@@ -41,6 +42,7 @@ class D3Weather extends Component {
     svgElements: {},
     select: 'clear',
     d3populated: false,
+    live: null,
   };
 
   handleSelectChange = (e, { value }) => {
@@ -255,7 +257,18 @@ class D3Weather extends Component {
       'transform',
       `translate(${x(new Date(d.data.dateTime * 1000))},${y(d.data.temp)})`,
     );
-    f.select('text').text(`${d.data.name}:\n ${d.data.temp}C`);
+    f.select('text')
+      .text(`${d.data.name}`)
+      .text(`${d.data.temp}C`);
+
+    this.setState({
+      live: {
+        name: d.data.name,
+        color: el.color,
+        temp: d.data.temp,
+        time: new Date(d.data.dateTime * 1000).toString(),
+      },
+    });
   };
 
   mouseOut = (d, f) => {
@@ -264,6 +277,9 @@ class D3Weather extends Component {
       svgElements: resetElements(svgElements),
     });
     f.attr('transform', 'translate(-100,-100)');
+    this.setState({
+      live: null,
+    });
   };
 
   focus = () => {
@@ -278,7 +294,7 @@ class D3Weather extends Component {
   };
 
   render() {
-    const { select, svgElements } = this.state;
+    const { select, svgElements, d3populated } = this.state;
     return (
       <Container>
         <div className="App">
@@ -289,6 +305,7 @@ class D3Weather extends Component {
             handleChange={this.handleSelectChange}
             parentState={select}
           />
+          <HeaderToolTip element={this.state.live} />
           <div
             style={{
               textAlign: 'center',
@@ -302,6 +319,7 @@ class D3Weather extends Component {
           <ToolTip
             handleChange={this.handleElementsHideChange}
             elements={svgElements}
+            d3populated={d3populated}
           />
         </div>
       </Container>
