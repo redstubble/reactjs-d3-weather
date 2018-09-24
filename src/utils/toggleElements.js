@@ -49,6 +49,13 @@ export const applyHoverStyles = (elObj) => {
   });
 };
 
+export const highlight = (bool) => {
+  const opacity = bool ? '1' : '0.5';
+  return {
+    opacity: opacity,
+  };
+};
+
 // this.focus().attr(
 //   'transform',
 //   `translate(${x(d.data.dateTime)},${y(d.data.temp)})`,

@@ -1,9 +1,8 @@
 // https://medium.com/dailyjs/building-a-react-component-with-webpack-publish-to-npm-deploy-to-github-guide-6927f60b3220
-
+import 'semantic-ui-css/semantic.min.css';
 import React, { Component } from 'react';
 import { Container } from 'semantic-ui-react';
 import * as d3Selection from 'd3-selection';
-
 import * as d3Array from 'd3-array';
 import * as d3Shape from 'd3-shape';
 import * as d3Voronoi from 'd3-voronoi';
@@ -136,53 +135,6 @@ class D3Weather extends Component {
     this.setState({ svgElements });
   };
 
-  plotVoronoi = () => {
-    const {
-      scales: { x, y },
-      canvas,
-      weatherData,
-    } = this.state;
-    const reactScope = this;
-    const voronoi = d3Voronoi
-      .voronoi()
-      .x((d) => x(new Date(d.dateTime * 1000)))
-      .y((d) => y(d.temp))
-      .extent([
-        [-canvas.margin.left, -canvas.margin.top],
-        [
-          canvas.width + canvas.margin.right,
-          canvas.height + canvas.margin.bottom,
-        ],
-      ]);
-
-    function voroniPolygons(data) {
-      return d3Array.merge(
-        data.map((d) => {
-          return d.forecast.map((e) => {
-            return {
-              ...e,
-              name: d.name,
-              line: d.line,
-            };
-          });
-        }),
-      );
-    }
-
-    const voronoiGroup = canvas.node.append('g').attr('class', 'voronoi');
-
-    voronoiGroup
-      .selectAll('path')
-      .data(voronoi.polygons(voroniPolygons(weatherData.apiResults.results)))
-      .enter()
-      .append('path')
-      .attr('d', (d) => (d ? `M${d.join('L')}Z` : null))
-      .attr('pointer-events', 'all')
-      .attr('fill', 'none')
-      .on('mouseover', reactScope.mouseOver)
-      .on('mouseout', reactScope.mouseOut);
-  };
-
   plotArea = () => {
     const {
       scales: { x, y },
@@ -218,19 +170,76 @@ class D3Weather extends Component {
       .attr('fill', 'none');
   };
 
-  mouseOver = (d) => {
-    const { svgElements } = this.state;
+  plotVoronoi = () => {
+    const {
+      scales: { x, y },
+      canvas,
+      weatherData,
+    } = this.state;
+    const reactScope = this;
+    const voronoi = d3Voronoi
+      .voronoi()
+      .x((d) => x(new Date(d.dateTime * 1000)))
+      .y((d) => y(d.temp))
+      .extent([
+        [-canvas.margin.left, -canvas.margin.top],
+        [
+          canvas.width + canvas.margin.right,
+          canvas.height + canvas.margin.bottom,
+        ],
+      ]);
+
+    function voroniPolygons(data) {
+      return d3Array.merge(
+        data.map((d) => {
+          return d.forecast.map((e) => {
+            return {
+              ...e,
+              name: d.name,
+              line: d.line,
+            };
+          });
+        }),
+      );
+    }
+
+    const voronoiGroup = canvas.node.append('g').attr('class', 'voronoi');
+    const focal = this.focus();
+
+    voronoiGroup
+      .selectAll('path')
+      .data(voronoi.polygons(voroniPolygons(weatherData.apiResults.results)))
+      .enter()
+      .append('path')
+      .attr('d', (d) => (d ? `M${d.join('L')}Z` : null))
+      .attr('pointer-events', 'all')
+      .attr('fill', 'none')
+      .on('mouseover', (d) => reactScope.mouseOver(d, focal))
+      .on('mouseout', (d) => reactScope.mouseOut(d, focal));
+  };
+
+  mouseOver = (d, f) => {
+    const {
+      scales: { x, y },
+      svgElements,
+    } = this.state;
     const el = svgElements[d.data.name];
     this.setState({
       svgElements: toggleElements(svgElements, el),
     });
+    f.attr(
+      'transform',
+      `translate(${x(new Date(d.data.dateTime * 1000))},${y(d.data.temp)})`,
+    );
+    f.select('text').text(`${d.data.name}: ${d.data.temp}C`);
   };
 
-  mouseOut = (d) => {
+  mouseOut = (d, f) => {
     const { svgElements } = this.state;
     this.setState({
       svgElements: resetElements(svgElements),
     });
+    f.attr('transform', 'translate(-100,-100)');
   };
 
   focus = () => {
@@ -269,7 +278,7 @@ class D3Weather extends Component {
           <ToolTip elements={svgElements} />
           <div className="bs-call-out bs-call-out-danger">
             <h4>Line Graph of Temperature Forecasts</h4>
-            <p>To add labeling, area fill and hover</p>
+            <p>To add labeling</p>
           </div>
         </div>
       </Container>
