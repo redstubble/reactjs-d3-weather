@@ -1,11 +1,3 @@
-h1 {
-  color: red;
-}
-
-.city--hover {
-  stroke: #000;
-}
-
 .d3-weather-tooltip-legend :after {
   content: '';
   display: table;

@@ -42,7 +42,7 @@ function _templateObject2() {
 }
 
 function _templateObject() {
-  var data = (0, _taggedTemplateLiteral2.default)(["\n  &&& {\n    width: 100%;\n    min-width: 1em;\n    height: 1em;\n    background-color: ", ";\n    opacity: ", ";\n    border: ", ";\n  }\n"]);
+  var data = (0, _taggedTemplateLiteral2.default)(["\n  &&& {\n    width: 100%;\n    min-width: 1em;\n    background-color: ", ";\n    opacity: ", ";\n    border: ", ";\n    min-height: 1em;\n  }\n"]);
 
   _templateObject = function _templateObject() {
     return data;
@@ -125,8 +125,7 @@ function (_React$Component) {
           mobile: 5,
           style: {
             textOverflow: 'ellipsis',
-            overflow: 'hidden',
-            height: '1em'
+            overflow: 'hidden'
           }
         }, _react.default.createElement(TextContainer, {
           highlight: highlighted

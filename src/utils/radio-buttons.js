@@ -21,7 +21,7 @@ export default class D3CheckboxRadioGroup extends Component {
           <Form.Field>
             <Checkbox
               radio
-              label="Weather Data"
+              label="Populate Graph"
               name="checkboxRadioGroup"
               value="weather"
               checked={parentState === 'weather'}

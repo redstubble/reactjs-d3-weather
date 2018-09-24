@@ -3,7 +3,10 @@ import { Card } from 'semantic-ui-react';
 import { formatDate } from '../utils/d3-helpers';
 
 class HeaderToolTip extends React.Component {
-  render({ element } = this.props) {
+  render({ d3populated, element } = this.props) {
+    if (!d3populated) {
+      return null;
+    }
     if (element) {
       return (
         <Card centered>

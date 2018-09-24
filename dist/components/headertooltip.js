@@ -37,7 +37,12 @@ function (_React$Component) {
     key: "render",
     value: function render() {
       var _ref = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.props,
+          d3populated = _ref.d3populated,
           element = _ref.element;
+
+      if (!d3populated) {
+        return null;
+      }
 
       if (element) {
         return _react.default.createElement(_semanticUiReact.Card, {

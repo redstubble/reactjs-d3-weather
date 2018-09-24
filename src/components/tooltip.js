@@ -20,10 +20,10 @@ const ColorContainer = styled.div`
   &&& {
     width: 100%;
     min-width: 1em;
-    height: 1em;
     background-color: ${(props) => props.color};
     opacity: ${(props) => props.opacity};
     border: ${(props) => (props.border ? '3px solid black' : 'none')};
+    min-height: 1em;
   }
 `;
 
@@ -61,7 +61,6 @@ class tooltip extends React.Component {
                   style={{
                     textOverflow: 'ellipsis',
                     overflow: 'hidden',
-                    height: '1em',
                   }}
                 >
                   <TextContainer highlight={highlighted}>

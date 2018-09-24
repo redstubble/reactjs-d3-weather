@@ -201,8 +201,8 @@ class D3Weather extends Component {
 
   plotVoronoiInitial = () => {
     const { canvas } = this.state;
-    const voronoiGroup = canvas.node.append('g').attr('class', 'voronoi');
     const focal = this.focus();
+    const voronoiGroup = canvas.node.append('g').attr('class', 'voronoi');
     this.setState({
       voronoiGroup,
       focal,
@@ -299,13 +299,13 @@ class D3Weather extends Component {
       <Container>
         <div className="App">
           <div className="header">
-            <h3 className="text-muted">D3 Implementations</h3>
+            <h3 className="text-muted">D3 Weather Chart</h3>
           </div>
           <RadioButtons
             handleChange={this.handleSelectChange}
             parentState={select}
           />
-          <HeaderToolTip element={this.state.live} />
+          <HeaderToolTip d3populated={d3populated} element={this.state.live} />
           <div
             style={{
               textAlign: 'center',

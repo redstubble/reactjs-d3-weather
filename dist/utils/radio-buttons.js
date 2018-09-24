@@ -66,7 +66,7 @@ function (_Component) {
         onChange: handleChange
       })), _react.default.createElement(_semanticUiReact.Form.Field, null, _react.default.createElement(_semanticUiReact.Checkbox, {
         radio: true,
-        label: "Weather Data",
+        label: "Populate Graph",
         name: "checkboxRadioGroup",
         value: "weather",
         checked: parentState === 'weather',

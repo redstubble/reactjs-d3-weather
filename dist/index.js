@@ -264,9 +264,10 @@ function (_Component) {
     });
     (0, _defineProperty2.default)((0, _assertThisInitialized2.default)((0, _assertThisInitialized2.default)(_this)), "plotVoronoiInitial", function () {
       var canvas = _this.state.canvas;
-      var voronoiGroup = canvas.node.append('g').attr('class', 'voronoi');
 
       var focal = _this.focus();
+
+      var voronoiGroup = canvas.node.append('g').attr('class', 'voronoi');
 
       _this.setState({
         voronoiGroup: voronoiGroup,
@@ -366,10 +367,11 @@ function (_Component) {
         className: "header"
       }, _react.default.createElement("h3", {
         className: "text-muted"
-      }, "D3 Implementations")), _react.default.createElement(_radioButtons.default, {
+      }, "D3 Weather Chart")), _react.default.createElement(_radioButtons.default, {
         handleChange: this.handleSelectChange,
         parentState: select
       }), _react.default.createElement(_headertooltip.default, {
+        d3populated: d3populated,
         element: this.state.live
       }), _react.default.createElement("div", {
         style: {
