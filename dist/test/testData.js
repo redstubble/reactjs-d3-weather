@@ -1347,7 +1347,7 @@ var _default = {
         humidity: 86
       }, {
         dateTime: 1537423200,
-        temp: 7.65,
+        temp: -7.65,
         humidity: 92
       }, {
         dateTime: 1537434000,

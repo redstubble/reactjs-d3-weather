@@ -60,14 +60,23 @@ var setD3Scales = function setD3Scales(_ref2) {
     return new Date(d.dateTime * 1000);
   })];
   var x = d3Scale.scaleTime().range([0, canvas.width]).domain(range[0]);
-  var tempVariance = d3Collection.nest().key(function (d) {
+  var tempMaxVariance = d3Collection.nest().key(function (d) {
     return d3Array.max(d.value.forecast, function (e) {
       return e.temp;
     });
   }).map(dataset).keys();
-  var highestTemp = d3Array.max(tempVariance);
-  var lowestTemp = d3Array.min(tempVariance);
-  var y = d3Scale.scaleLinear().range([canvas.height, 0]).domain([lowestTemp - 15, highestTemp]);
+  var tempMinVariance = d3Collection.nest().key(function (d) {
+    return d3Array.min(d.value.forecast, function (e) {
+      return e.temp;
+    });
+  }).map(dataset).keys();
+  var highestTemp = d3Array.max(tempMaxVariance, function (d) {
+    return parseInt(d);
+  });
+  var lowestTemp = d3Array.min(tempMinVariance, function (d) {
+    return parseInt(d);
+  });
+  var y = d3Scale.scaleLinear().range([canvas.height, 0]).domain([lowestTemp - 1, highestTemp]);
   var z = d3Scale.scaleOrdinal(d3ScaleChromatic.schemeCategory10).domain(weatherData.apiResults.results.map(function (d) {
     return d.name;
   }));

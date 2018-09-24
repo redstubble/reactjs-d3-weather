@@ -47,19 +47,29 @@ export const setD3Scales = ({ canvas, weatherData }) => {
     .range([0, canvas.width])
     .domain(range[0]);
 
-  const tempVariance = d3Collection
+  const tempMaxVariance = d3Collection
     .nest()
     .key((d) => d3Array.max(d.value.forecast, (e) => e.temp))
     .map(dataset)
     .keys();
 
-  const highestTemp = d3Array.max(tempVariance);
-  const lowestTemp = d3Array.min(tempVariance);
+  const tempMinVariance = d3Collection
+    .nest()
+    .key((d) => d3Array.min(d.value.forecast, (e) => e.temp))
+    .map(dataset)
+    .keys();
+
+  const highestTemp = d3Array.max(tempMaxVariance, (d) => {
+    return parseInt(d);
+  });
+  const lowestTemp = d3Array.min(tempMinVariance, (d) => {
+    return parseInt(d);
+  });
 
   const y = d3Scale
     .scaleLinear()
     .range([canvas.height, 0])
-    .domain([lowestTemp - 15, highestTemp]);
+    .domain([lowestTemp - 1, highestTemp]);
 
   const z = d3Scale
     .scaleOrdinal(d3ScaleChromatic.schemeCategory10)
