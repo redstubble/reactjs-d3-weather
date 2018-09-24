@@ -7,7 +7,7 @@ var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefau
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.applyHoverStyles = exports.resetElements = exports.toggleElements = void 0;
+exports.highlight = exports.applyHoverStyles = exports.resetElements = exports.toggleElements = void 0;
 
 var _objectSpread2 = _interopRequireDefault(require("@babel/runtime/helpers/objectSpread"));
 
@@ -51,6 +51,15 @@ var applyHoverStyles = function applyHoverStyles(elObj) {
       d3Selection.select(elObj[n].area).attr('fill', 'none').attr('opacity', 0.5);
     }
   });
+};
+
+exports.applyHoverStyles = applyHoverStyles;
+
+var highlight = function highlight(bool) {
+  var opacity = bool ? '1' : '0.5';
+  return {
+    opacity: opacity
+  };
 }; // this.focus().attr(
 //   'transform',
 //   `translate(${x(d.data.dateTime)},${y(d.data.temp)})`,
@@ -60,4 +69,4 @@ var applyHoverStyles = function applyHoverStyles(elObj) {
 //   .text(d.data.name);
 
 
-exports.applyHoverStyles = applyHoverStyles;
+exports.highlight = highlight;

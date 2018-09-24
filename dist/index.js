@@ -29,6 +29,10 @@ var _assertThisInitialized2 = _interopRequireDefault(require("@babel/runtime/hel
 
 var _defineProperty2 = _interopRequireDefault(require("@babel/runtime/helpers/defineProperty"));
 
+require("semantic-ui-css/semantic.min.css");
+
+require("./styles.css");
+
 var _react = _interopRequireWildcard(require("react"));
 
 var _semanticUiReact = require("semantic-ui-react");
@@ -39,8 +43,6 @@ var d3Array = _interopRequireWildcard(require("d3-array"));
 
 var d3Shape = _interopRequireWildcard(require("d3-shape"));
 
-var d3Voronoi = _interopRequireWildcard(require("d3-voronoi"));
-
 var _weatherApi = require("./api/weatherApi");
 
 var _radioButtons = _interopRequireDefault(require("./utils/radio-buttons"));
@@ -50,6 +52,8 @@ var _tooltip = _interopRequireDefault(require("./components/tooltip"));
 var _toggleElements = require("./utils/toggleElements");
 
 var _canvasScaffold = require("./utils/canvasScaffold");
+
+var _d3Collection = require("d3-collection");
 
 // https://medium.com/dailyjs/building-a-react-component-with-webpack-publish-to-npm-deploy-to-github-guide-6927f60b3220
 var graphDiv = '.graph-canvas';
@@ -99,6 +103,23 @@ function (_Component) {
       _this.setState({
         select: value
       });
+    });
+    (0, _defineProperty2.default)((0, _assertThisInitialized2.default)((0, _assertThisInitialized2.default)(_this)), "handleElementsHideChange", function (e, _ref2) {
+      var value = _ref2.value,
+          checked = _ref2.checked;
+      var svgElements = _this.state.svgElements;
+      var el = svgElements[value];
+      el.hide = !checked; // double negative to avoid creating hide property on all els
+
+      var view = el.hide ? 'hide' : 'show';
+      el.line.setAttribute('class', view);
+      el.area.setAttribute('class', view);
+
+      _this.setState({
+        svgElements: svgElements
+      });
+
+      _this.updatePlotVoronoi();
     });
     (0, _defineProperty2.default)((0, _assertThisInitialized2.default)((0, _assertThisInitialized2.default)(_this)), "componentDidUpdate", function () {
       var _this$state = _this.state,
@@ -160,7 +181,7 @@ function (_Component) {
 
                 _this.plotArea();
 
-                _this.plotVoronoi();
+                _this.plotVoronoiInitial();
               }
 
             case 4:
@@ -200,44 +221,14 @@ function (_Component) {
         svgElements: svgElements
       });
     });
-    (0, _defineProperty2.default)((0, _assertThisInitialized2.default)((0, _assertThisInitialized2.default)(_this)), "plotVoronoi", function () {
+    (0, _defineProperty2.default)((0, _assertThisInitialized2.default)((0, _assertThisInitialized2.default)(_this)), "plotArea", function () {
       var _this$state3 = _this.state,
           _this$state3$scales = _this$state3.scales,
           x = _this$state3$scales.x,
           y = _this$state3$scales.y,
           canvas = _this$state3.canvas,
+          svgElements = _this$state3.svgElements,
           weatherData = _this$state3.weatherData;
-      var reactScope = (0, _assertThisInitialized2.default)((0, _assertThisInitialized2.default)(_this));
-      var voronoi = d3Voronoi.voronoi().x(function (d) {
-        return x(new Date(d.dateTime * 1000));
-      }).y(function (d) {
-        return y(d.temp);
-      }).extent([[-canvas.margin.left, -canvas.margin.top], [canvas.width + canvas.margin.right, canvas.height + canvas.margin.bottom]]);
-
-      function voroniPolygons(data) {
-        return d3Array.merge(data.map(function (d) {
-          return d.forecast.map(function (e) {
-            return (0, _objectSpread2.default)({}, e, {
-              name: d.name,
-              line: d.line
-            });
-          });
-        }));
-      }
-
-      var voronoiGroup = canvas.node.append('g').attr('class', 'voronoi');
-      voronoiGroup.selectAll('path').data(voronoi.polygons(voroniPolygons(weatherData.apiResults.results))).enter().append('path').attr('d', function (d) {
-        return d ? "M".concat(d.join('L'), "Z") : null;
-      }).attr('pointer-events', 'all').attr('fill', 'none').on('mouseover', reactScope.mouseOver).on('mouseout', reactScope.mouseOut);
-    });
-    (0, _defineProperty2.default)((0, _assertThisInitialized2.default)((0, _assertThisInitialized2.default)(_this)), "plotArea", function () {
-      var _this$state4 = _this.state,
-          _this$state4$scales = _this$state4.scales,
-          x = _this$state4$scales.x,
-          y = _this$state4$scales.y,
-          canvas = _this$state4.canvas,
-          svgElements = _this$state4.svgElements,
-          weatherData = _this$state4.weatherData;
       var area = d3Shape.area().curve(d3Shape.curveNatural).x(function (d) {
         return x(new Date(d.dateTime * 1000));
       }).y0(canvas.height).y1(function (d) {
@@ -251,20 +242,90 @@ function (_Component) {
         return area(d.forecast);
       }).attr('fill', 'none');
     });
-    (0, _defineProperty2.default)((0, _assertThisInitialized2.default)((0, _assertThisInitialized2.default)(_this)), "mouseOver", function (d) {
-      var svgElements = _this.state.svgElements;
+    (0, _defineProperty2.default)((0, _assertThisInitialized2.default)((0, _assertThisInitialized2.default)(_this)), "updatePlotVoronoi", function () {
+      var _this$state4 = _this.state,
+          svgElements = _this$state4.svgElements,
+          weatherData = _this$state4.weatherData;
+      var newData = weatherData.apiResults.results;
+      (0, _d3Collection.keys)(svgElements).map(function (a) {
+        var el = svgElements[a];
+
+        if (el.hide) {
+          newData = newData.filter(function (o) {
+            return o.name !== el.name;
+          }); // if hidden only return els not with same name.
+        }
+      });
+
+      _this.plotVoronoi(newData);
+    });
+    (0, _defineProperty2.default)((0, _assertThisInitialized2.default)((0, _assertThisInitialized2.default)(_this)), "plotVoronoiInitial", function () {
+      var canvas = _this.state.canvas;
+      var voronoiGroup = canvas.node.append('g').attr('class', 'voronoi');
+
+      var focal = _this.focus();
+
+      _this.setState({
+        voronoiGroup: voronoiGroup,
+        focal: focal
+      });
+
+      _this.plotVoronoi();
+    });
+    (0, _defineProperty2.default)((0, _assertThisInitialized2.default)((0, _assertThisInitialized2.default)(_this)), "plotVoronoi", function () {
+      var update = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
+      var _this$state5 = _this.state,
+          _this$state5$scales = _this$state5.scales,
+          voronoi = _this$state5$scales.voronoi,
+          voroniPolygons = _this$state5$scales.voroniPolygons,
+          weatherData = _this$state5.weatherData,
+          voronoiGroup = _this$state5.voronoiGroup,
+          focal = _this$state5.focal;
+      var data = update || weatherData.apiResults.results;
+      var reactScope = (0, _assertThisInitialized2.default)((0, _assertThisInitialized2.default)(_this));
+      var v = voronoiGroup.selectAll('path').data(voronoi.polygons(voroniPolygons(data)));
+      v.exit() //Exit old elements not present in new data
+      .on('mouseover', null).on('mouseout', null).remove(); // UPDATE old elements present in new data.
+
+      v.attr('d', function (d) {
+        return d ? "M".concat(d.join('L'), "Z") : null;
+      }).attr('pointer-events', 'all').attr('fill', 'none').on('mouseover', function (d) {
+        return reactScope.mouseOver(d, focal);
+      }).on('mouseout', function (d) {
+        return reactScope.mouseOut(d, focal);
+      });
+      v.enter() //new Elements
+      .append('path').attr('d', function (d) {
+        return d ? "M".concat(d.join('L'), "Z") : null;
+      }).attr('pointer-events', 'all').attr('fill', 'none').on('mouseover', function (d) {
+        return reactScope.mouseOver(d, focal);
+      }).on('mouseout', function (d) {
+        return reactScope.mouseOut(d, focal);
+      });
+    });
+    (0, _defineProperty2.default)((0, _assertThisInitialized2.default)((0, _assertThisInitialized2.default)(_this)), "mouseOver", function (d, f) {
+      var _this$state6 = _this.state,
+          _this$state6$scales = _this$state6.scales,
+          x = _this$state6$scales.x,
+          y = _this$state6$scales.y,
+          svgElements = _this$state6.svgElements;
       var el = svgElements[d.data.name];
 
       _this.setState({
         svgElements: (0, _toggleElements.toggleElements)(svgElements, el)
       });
+
+      f.attr('transform', "translate(".concat(x(new Date(d.data.dateTime * 1000)), ",").concat(y(d.data.temp), ")"));
+      f.select('text').text("".concat(d.data.name, ":\n ").concat(d.data.temp, "C"));
     });
-    (0, _defineProperty2.default)((0, _assertThisInitialized2.default)((0, _assertThisInitialized2.default)(_this)), "mouseOut", function (d) {
+    (0, _defineProperty2.default)((0, _assertThisInitialized2.default)((0, _assertThisInitialized2.default)(_this)), "mouseOut", function (d, f) {
       var svgElements = _this.state.svgElements;
 
       _this.setState({
         svgElements: (0, _toggleElements.resetElements)(svgElements)
       });
+
+      f.attr('transform', 'translate(-100,-100)');
     });
     (0, _defineProperty2.default)((0, _assertThisInitialized2.default)((0, _assertThisInitialized2.default)(_this)), "focus", function () {
       var canvas = _this.state.canvas;
@@ -279,19 +340,19 @@ function (_Component) {
   (0, _createClass2.default)(D3Weather, [{
     key: "render",
     value: function render() {
-      var _this$state5 = this.state,
-          select = _this$state5.select,
-          svgElements = _this$state5.svgElements;
+      var _this$state7 = this.state,
+          select = _this$state7.select,
+          svgElements = _this$state7.svgElements;
       return _react.default.createElement(_semanticUiReact.Container, null, _react.default.createElement("div", {
         className: "App"
-      }, _react.default.createElement(_radioButtons.default, {
-        handleChange: this.handleSelectChange,
-        parentState: select
-      }), _react.default.createElement("div", {
+      }, _react.default.createElement("div", {
         className: "header"
       }, _react.default.createElement("h3", {
         className: "text-muted"
-      }, "D3 Implementations")), _react.default.createElement("div", {
+      }, "D3 Implementations")), _react.default.createElement(_radioButtons.default, {
+        handleChange: this.handleSelectChange,
+        parentState: select
+      }), _react.default.createElement("div", {
         style: {
           textAlign: 'center',
           borderBottom: '1px solid #e5e5e5',
@@ -301,10 +362,9 @@ function (_Component) {
         className: "jumbotron graph-canvas",
         id: "graph-canvas-weather"
       }), _react.default.createElement(_tooltip.default, {
+        handleChange: this.handleElementsHideChange,
         elements: svgElements
-      }), _react.default.createElement("div", {
-        className: "bs-call-out bs-call-out-danger"
-      }, _react.default.createElement("h4", null, "Line Graph of Temperature Forecasts"), _react.default.createElement("p", null, "To add labeling, area fill and hover"))));
+      })));
     }
   }]);
   return D3Weather;

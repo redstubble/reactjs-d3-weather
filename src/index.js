@@ -1,11 +1,11 @@
 // https://medium.com/dailyjs/building-a-react-component-with-webpack-publish-to-npm-deploy-to-github-guide-6927f60b3220
 import 'semantic-ui-css/semantic.min.css';
+import './styles.css';
 import React, { Component } from 'react';
 import { Container } from 'semantic-ui-react';
 import * as d3Selection from 'd3-selection';
 import * as d3Array from 'd3-array';
 import * as d3Shape from 'd3-shape';
-import * as d3Voronoi from 'd3-voronoi';
 import { getWeatherData } from './api/weatherApi';
 import RadioButtons from './utils/radio-buttons';
 import ToolTip from './components/tooltip';
@@ -15,6 +15,7 @@ import {
   setD3Scales,
   setAxis,
 } from './utils/canvasScaffold';
+import { keys } from 'd3-collection';
 
 const graphDiv = '.graph-canvas';
 
@@ -46,6 +47,19 @@ class D3Weather extends Component {
     this.setState({
       select: value,
     });
+  };
+
+  handleElementsHideChange = (e, { value, checked }) => {
+    const { svgElements } = this.state;
+    const el = svgElements[value];
+    el.hide = !checked; // double negative to avoid creating hide property on all els
+    const view = el.hide ? 'hide' : 'show';
+    el.line.setAttribute('class', view);
+    el.area.setAttribute('class', view);
+    this.setState({
+      svgElements,
+    });
+    this.updatePlotVoronoi();
   };
 
   componentDidUpdate = () => {
@@ -91,7 +105,7 @@ class D3Weather extends Component {
 
       this.plotLineGraph();
       this.plotArea();
-      this.plotVoronoi();
+      this.plotVoronoiInitial();
     }
   };
 
@@ -102,6 +116,7 @@ class D3Weather extends Component {
       weatherData,
       svgElements,
     } = this.state;
+
     const line = d3Shape
       .line()
       .curve(d3Shape.curveNatural)
@@ -170,46 +185,55 @@ class D3Weather extends Component {
       .attr('fill', 'none');
   };
 
-  plotVoronoi = () => {
-    const {
-      scales: { x, y },
-      canvas,
-      weatherData,
-    } = this.state;
-    const reactScope = this;
-    const voronoi = d3Voronoi
-      .voronoi()
-      .x((d) => x(new Date(d.dateTime * 1000)))
-      .y((d) => y(d.temp))
-      .extent([
-        [-canvas.margin.left, -canvas.margin.top],
-        [
-          canvas.width + canvas.margin.right,
-          canvas.height + canvas.margin.bottom,
-        ],
-      ]);
+  updatePlotVoronoi = () => {
+    const { svgElements, weatherData } = this.state;
+    let newData = weatherData.apiResults.results;
+    keys(svgElements).map((a) => {
+      const el = svgElements[a];
+      if (el.hide) {
+        newData = newData.filter((o) => o.name !== el.name); // if hidden only return els not with same name.
+      }
+    });
+    this.plotVoronoi(newData);
+  };
 
-    function voroniPolygons(data) {
-      return d3Array.merge(
-        data.map((d) => {
-          return d.forecast.map((e) => {
-            return {
-              ...e,
-              name: d.name,
-              line: d.line,
-            };
-          });
-        }),
-      );
-    }
-
+  plotVoronoiInitial = () => {
+    const { canvas } = this.state;
     const voronoiGroup = canvas.node.append('g').attr('class', 'voronoi');
     const focal = this.focus();
+    this.setState({
+      voronoiGroup,
+      focal,
+    });
+    this.plotVoronoi();
+  };
 
-    voronoiGroup
+  plotVoronoi = (update = null) => {
+    const {
+      scales: { voronoi, voroniPolygons },
+      weatherData,
+      voronoiGroup,
+      focal,
+    } = this.state;
+    const data = update || weatherData.apiResults.results;
+    const reactScope = this;
+    const v = voronoiGroup
       .selectAll('path')
-      .data(voronoi.polygons(voroniPolygons(weatherData.apiResults.results)))
-      .enter()
+      .data(voronoi.polygons(voroniPolygons(data)));
+
+    v.exit() //Exit old elements not present in new data
+      .on('mouseover', null)
+      .on('mouseout', null)
+      .remove();
+
+    // UPDATE old elements present in new data.
+    v.attr('d', (d) => (d ? `M${d.join('L')}Z` : null))
+      .attr('pointer-events', 'all')
+      .attr('fill', 'none')
+      .on('mouseover', (d) => reactScope.mouseOver(d, focal))
+      .on('mouseout', (d) => reactScope.mouseOut(d, focal));
+
+    v.enter() //new Elements
       .append('path')
       .attr('d', (d) => (d ? `M${d.join('L')}Z` : null))
       .attr('pointer-events', 'all')
@@ -231,7 +255,7 @@ class D3Weather extends Component {
       'transform',
       `translate(${x(new Date(d.data.dateTime * 1000))},${y(d.data.temp)})`,
     );
-    f.select('text').text(`${d.data.name}: ${d.data.temp}C`);
+    f.select('text').text(`${d.data.name}:\n ${d.data.temp}C`);
   };
 
   mouseOut = (d, f) => {
@@ -258,13 +282,13 @@ class D3Weather extends Component {
     return (
       <Container>
         <div className="App">
+          <div className="header">
+            <h3 className="text-muted">D3 Implementations</h3>
+          </div>
           <RadioButtons
             handleChange={this.handleSelectChange}
             parentState={select}
           />
-          <div className="header">
-            <h3 className="text-muted">D3 Implementations</h3>
-          </div>
           <div
             style={{
               textAlign: 'center',
@@ -275,11 +299,10 @@ class D3Weather extends Component {
             className="jumbotron graph-canvas"
             id="graph-canvas-weather"
           />
-          <ToolTip elements={svgElements} />
-          <div className="bs-call-out bs-call-out-danger">
-            <h4>Line Graph of Temperature Forecasts</h4>
-            <p>To add labeling</p>
-          </div>
+          <ToolTip
+            handleChange={this.handleElementsHideChange}
+            elements={svgElements}
+          />
         </div>
       </Container>
     );

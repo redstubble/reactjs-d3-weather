@@ -5,6 +5,7 @@ import * as d3ScaleChromatic from 'd3-scale-chromatic';
 import * as d3Array from 'd3-array';
 import * as d3TimeFormat from 'd3-time-format';
 import * as d3Time from 'd3-time';
+import * as d3Voronoi from 'd3-voronoi';
 import * as d3Axis from 'd3-axis';
 
 export const setCanvasDataState = ({ top, right, bottom, left }, el) => {
@@ -64,10 +65,35 @@ export const setD3Scales = ({ canvas, weatherData }) => {
     .scaleOrdinal(d3ScaleChromatic.schemeCategory10)
     .domain(weatherData.apiResults.results.map((d) => d.name));
 
+  const voronoi = d3Voronoi
+    .voronoi()
+    .x((d) => x(new Date(d.dateTime * 1000)))
+    .y((d) => y(d.temp))
+    .extent([
+      [-canvas.margin.left, -canvas.margin.top],
+      [
+        canvas.width + canvas.margin.right,
+        canvas.height + canvas.margin.bottom,
+      ],
+    ]);
+
+  const voroniPolygons = (data) => {
+    return d3Array.merge(
+      data.map((d) =>
+        d.forecast.map((e) => ({
+          ...e,
+          name: d.name,
+          line: d.line,
+        })),
+      ),
+    );
+  };
   return {
     x,
     y,
     z,
+    voronoi,
+    voroniPolygons,
     highestTemp,
   };
 };

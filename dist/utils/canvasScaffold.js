@@ -2,10 +2,14 @@
 
 var _interopRequireWildcard = require("@babel/runtime/helpers/interopRequireWildcard");
 
+var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
+
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.setAxis = exports.setD3Scales = exports.setCanvasDataState = void 0;
+
+var _objectSpread2 = _interopRequireDefault(require("@babel/runtime/helpers/objectSpread"));
 
 var d3Selection = _interopRequireWildcard(require("d3-selection"));
 
@@ -20,6 +24,8 @@ var d3Array = _interopRequireWildcard(require("d3-array"));
 var d3TimeFormat = _interopRequireWildcard(require("d3-time-format"));
 
 var d3Time = _interopRequireWildcard(require("d3-time"));
+
+var d3Voronoi = _interopRequireWildcard(require("d3-voronoi"));
 
 var d3Axis = _interopRequireWildcard(require("d3-axis"));
 
@@ -65,10 +71,29 @@ var setD3Scales = function setD3Scales(_ref2) {
   var z = d3Scale.scaleOrdinal(d3ScaleChromatic.schemeCategory10).domain(weatherData.apiResults.results.map(function (d) {
     return d.name;
   }));
+  var voronoi = d3Voronoi.voronoi().x(function (d) {
+    return x(new Date(d.dateTime * 1000));
+  }).y(function (d) {
+    return y(d.temp);
+  }).extent([[-canvas.margin.left, -canvas.margin.top], [canvas.width + canvas.margin.right, canvas.height + canvas.margin.bottom]]);
+
+  var voroniPolygons = function voroniPolygons(data) {
+    return d3Array.merge(data.map(function (d) {
+      return d.forecast.map(function (e) {
+        return (0, _objectSpread2.default)({}, e, {
+          name: d.name,
+          line: d.line
+        });
+      });
+    }));
+  };
+
   return {
     x: x,
     y: y,
     z: z,
+    voronoi: voronoi,
+    voroniPolygons: voroniPolygons,
     highestTemp: highestTemp
   };
 };

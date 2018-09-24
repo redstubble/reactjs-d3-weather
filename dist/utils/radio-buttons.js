@@ -55,7 +55,9 @@ function (_Component) {
           handleChange = _ref.handleChange,
           parentState = _ref.parentState;
 
-      return _react.default.createElement(_semanticUiReact.Form, null, _react.default.createElement(_semanticUiReact.Form.Field, null, "Selected value: ", _react.default.createElement("b", null, parentState)), _react.default.createElement(_semanticUiReact.Form.Field, null, _react.default.createElement(_semanticUiReact.Checkbox, {
+      return _react.default.createElement(_semanticUiReact.Form, null, _react.default.createElement(_semanticUiReact.Form.Group, {
+        inline: true
+      }, _react.default.createElement(_semanticUiReact.Form.Field, null, _react.default.createElement(_semanticUiReact.Checkbox, {
         radio: true,
         label: "Clear",
         name: "checkboxRadioGroup",
@@ -69,7 +71,7 @@ function (_Component) {
         value: "weather",
         checked: parentState === 'weather',
         onChange: handleChange
-      })));
+      }))));
     }
   }]);
   return D3CheckboxRadioGroup;
